@@ -412,11 +412,12 @@ export class PingPongEngine {
   private updateAI(): void {
     const ballX = this.ball.x;
     const aiCenter = this.ai.x + this.ai.width / 2;
-    const speed = this.difficulty === 'hard' ? 4.4 : 2.9;
+    const speed = this.difficulty === 'hard' ? 4.4 : 1.3;
+    const deadZone = this.difficulty === 'hard' ? 4 : 11;
 
-    if (ballX < aiCenter - 4) {
+    if (ballX < aiCenter - deadZone) {
       this.ai.move(-speed);
-    } else if (ballX > aiCenter + 4) {
+    } else if (ballX > aiCenter + deadZone) {
       this.ai.move(speed);
     }
   }

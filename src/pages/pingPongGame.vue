@@ -16,7 +16,7 @@
 
         <div class="column items-center">
           <q-badge v-if="isDeuce" color="amber-7" text-color="dark" label="DEUCE" class="q-mb-xs" />
-          <div class="text-subtitle2 text-weight-bold text-amber-4">TÊNIS DE MESA</div>
+          <div class="text-subtitle2 text-weight-bold text-amber-4">MEGA PING PONG</div>
           <div class="text-caption text-grey-4">Melhor de 5 sets</div>
         </div>
 
@@ -34,6 +34,38 @@
             <span class="text-caption text-grey-4">Sets: {{ playerSets }}</span>
             <span class="text-h5 text-weight-bold text-light-blue-4">{{ playerScore }}</span>
           </div>
+        </div>
+        <div class="row items-center justify-between q-mb-sm control-row full-width">
+          <div class="text-subtitle2 text-grey-4">Modo de Jogo:</div>
+          <q-toggle
+            v-model="isPvPMode"
+            :disable="isGameStarted && !isGameOver"
+            color="purple"
+            checked-icon="people"
+            unchecked-icon="smart_toy"
+            :label="isPvPMode ? 'Humano vs Humano' : 'Jogador vs IA'"
+            left-label
+            @update:model-value="updateGameMode"
+          />
+        </div>
+
+        <div
+          style="margin-top: -25px"
+          v-if="!isPvPMode"
+          class="row items-center justify-between q-mb-sm control-row full-width"
+        >
+          <div class="text-subtitle2 text-grey-4">Dificuldade da IA:</div>
+          <q-toggle
+            style="margin-bottom: -10px"
+            v-model="isHardMode"
+            :disable="isGameStarted && !isGameOver"
+            color="red"
+            checked-icon="whatshot"
+            unchecked-icon="sentiment_satisfied"
+            :label="isHardMode ? 'Difícil' : 'Fácil'"
+            left-label
+            @update:model-value="updateDifficulty"
+          />
         </div>
       </div>
 
@@ -139,38 +171,6 @@
             @pointerleave="touchP2Right = false"
           />
         </div>
-      </div>
-
-      <div class="row items-center justify-between q-mb-sm control-row full-width">
-        <div class="text-subtitle2 text-grey-4">Modo de Jogo:</div>
-        <q-toggle
-          v-model="isPvPMode"
-          :disable="isGameStarted && !isGameOver"
-          color="purple"
-          checked-icon="people"
-          unchecked-icon="smart_toy"
-          :label="isPvPMode ? 'Humano vs Humano' : 'Jogador vs IA'"
-          left-label
-          @update:model-value="updateGameMode"
-        />
-      </div>
-
-      <div
-        style="margin-top: -25px"
-        v-if="!isPvPMode"
-        class="row items-center justify-between q-mb-sm control-row full-width"
-      >
-        <div class="text-subtitle2 text-grey-4">Dificuldade da IA:</div>
-        <q-toggle
-          v-model="isHardMode"
-          :disable="isGameStarted && !isGameOver"
-          color="red"
-          checked-icon="whatshot"
-          unchecked-icon="sentiment_satisfied"
-          :label="isHardMode ? 'Difícil' : 'Fácil'"
-          left-label
-          @update:model-value="updateDifficulty"
-        />
       </div>
 
       <!-- Caixa extra de controlos do Jogador 2 no modo Humano vs Humano -->
