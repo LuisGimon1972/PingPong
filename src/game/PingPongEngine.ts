@@ -3,6 +3,7 @@ import { Ball } from './classes/Ball';
 import { Paddle } from './classes/Paddle';
 import { Court } from './classes/Court';
 import { soundManager } from './classes/SoundManager';
+import { PingPongAtlas, type PaddleFacing } from './classes/PingPongAtlas';
 
 export type Competitor = 'player' | 'ai';
 
@@ -25,6 +26,11 @@ export class PingPongEngine {
   public currentServer: Competitor = 'player';
   public message = 'DIRECIONAMENTO ATIVO PARA A ÁREA AZUL! PIQUE ANTES DE BATER';
 
+  private atlas = new PingPongAtlas('/images/AtlasPingPong.png');
+  private aiFacing: PaddleFacing = 'vertical';
+  private playerFacing: PaddleFacing = 'vertical';
+  private animFrameCounter = 0;
+
   private difficulty: 'easy' | 'hard' = 'hard';
   private gameMode: 'pve' | 'pvp' = 'pve';
 
@@ -34,6 +40,7 @@ export class PingPongEngine {
 
   private bounceScale = 1;
   private totalPointsPlayed = 0;
+  private matchStartServer: Competitor = 'player';
   private lastHitTime = 0;
   private hitCooldownMs = 160;
 
@@ -74,29 +81,48 @@ export class PingPongEngine {
     this.isGameOver = false;
     this.isDeuce = false;
     this.totalPointsPlayed = 0;
-    this.currentServer = 'player';
+    this.matchStartServer = this.matchStartServer === 'player' ? 'ai' : 'player';
+    this.currentServer = this.matchStartServer;
     this.bounceMarks = [];
     this.bounceScale = 1;
     this.message = 'NOVA PARTIDA! DIRECIONAMENTO PARA A ÁREA AZUL';
     this.resetPoint();
   }
 
+  private computeNextServer(): Competitor {
+    const otherServer: Competitor = this.matchStartServer === 'player' ? 'ai' : 'player';
+
+    if (this.player.score >= 10 && this.ai.score >= 10) {
+      return this.totalPointsPlayed % 2 === 0 ? this.matchStartServer : otherServer;
+    }
+
+    const blockIndex = Math.floor(this.totalPointsPlayed / 2);
+    return blockIndex % 2 === 0 ? this.matchStartServer : otherServer;
+  }
+
   public resetPoint(): void {
     const centerX = COURT.x + COURT.width / 2 - PADDLE.width / 2;
-    this.currentServer = 'player';
+    this.currentServer = this.computeNextServer();
     this.ball.reset(true);
     this.player.resetPosition(centerX, this.playerPaddleY);
     this.ai.resetPosition(centerX, this.aiPaddleY);
 
     this.bouncesOnCurrentSide = 0;
     this.lastBounceSide = null;
-    this.lastStriker = 'player';
+    this.lastStriker = this.currentServer;
     this.bounceScale = 1;
     this.ball.hasBouncedInCurrentCourt = false;
-    this.ball.lastHitByPlayer = true;
+    this.ball.lastHitByPlayer = this.currentServer === 'player';
 
-    // Direciona o saque automático para a metade superior da mesa azul
-    this.aimBallTowardTable('ai', 0);
+    if (this.currentServer === 'player') {
+      this.ball.x = this.player.x + this.player.width / 2;
+      this.ball.y = this.player.y - this.ball.radius - 2;
+      this.aimBallTowardTable('ai', 0);
+    } else {
+      this.ball.x = this.ai.x + this.ai.width / 2;
+      this.ball.y = this.ai.y + this.ai.height + this.ball.radius + 2;
+      this.aimBallTowardTable('player', 0);
+    }
   }
 
   private aimBallTowardTable(targetSide: Competitor, paddleHitOffset: number): void {
@@ -188,7 +214,9 @@ export class PingPongEngine {
 
       this.player.score = 0;
       this.ai.score = 0;
+      this.totalPointsPlayed = 0;
       this.isDeuce = false;
+      this.matchStartServer = this.matchStartServer === 'player' ? 'ai' : 'player';
     }
 
     this.resetPoint();
@@ -213,6 +241,9 @@ export class PingPongEngine {
   public update(playerDx: number, p2Dx: number = 0): void {
     if (this.isGameOver || !this.isGameStarted) return;
 
+    const prevAiX = this.ai.x;
+    const prevPlayerX = this.player.x;
+
     this.player.move(playerDx);
 
     if (this.gameMode === 'pvp') {
@@ -220,6 +251,14 @@ export class PingPongEngine {
     } else {
       this.updateAI();
     }
+
+    const actualPlayerDx = this.player.x - prevPlayerX;
+    const actualAiDx = this.ai.x - prevAiX;
+
+    this.playerFacing =
+      actualPlayerDx < -0.25 ? 'left' : actualPlayerDx > 0.25 ? 'right' : 'vertical';
+    this.aiFacing = actualAiDx < -0.25 ? 'left' : actualAiDx > 0.25 ? 'right' : 'vertical';
+    this.animFrameCounter += 1;
 
     if (this.bounceScale > 1) {
       this.bounceScale = Math.max(1, this.bounceScale - 0.04);
@@ -431,13 +470,31 @@ export class PingPongEngine {
       ctx.restore();
     });
 
-    // Raquete Superior (IA / Jogador 2)
-    ctx.fillStyle = '#f43f5e';
-    ctx.fillRect(this.ai.x, this.ai.y, this.ai.width, this.ai.height);
+    const frameCol = Math.floor(this.animFrameCounter / 6) % 6;
 
-    // Raquete Inferior (Jogador 1)
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
+    // Raquete Superior (IA / Jogador 2)
+    this.atlas.drawPaddle(
+      ctx,
+      'ai',
+      this.aiFacing,
+      frameCol,
+      this.ai.x - 6,
+      this.ai.y - 8,
+      this.ai.width + 12,
+      this.ai.height + 16,
+    );
+
+    // Raquete Inferior (Jogador 1 / HUM)
+    this.atlas.drawPaddle(
+      ctx,
+      'hum',
+      this.playerFacing,
+      frameCol,
+      this.player.x - 6,
+      this.player.y - 8,
+      this.player.width + 12,
+      this.player.height + 16,
+    );
 
     // Bola com escala de quique
     ctx.fillStyle = '#facc15';

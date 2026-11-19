@@ -64,8 +64,8 @@
         </div>
       </div>
 
-      <!-- Controles Touch (Úteis em telas sensíveis ao toque) -->
-      <div class="touch-controls row justify-between full-width q-px-xs">
+      <!-- Controles Touch (Úteis em telas sensíveis ao toque) + Ações -->
+      <div class="touch-controls row items-center justify-between full-width q-px-xs q-gutter-xs">
         <div class="row q-gutter-xs">
           <q-btn
             dense
@@ -84,6 +84,38 @@
             @pointerdown="touchPlayerRight = true"
             @pointerup="touchPlayerRight = false"
             @pointerleave="touchPlayerRight = false"
+          />
+        </div>
+
+        <div class="row items-center q-gutter-xs">
+          <q-btn
+            color="positive"
+            text-color="white"
+            label="Iniciar Jogo"
+            dense
+            unelevated
+            class="action-btn q-px-sm"
+            :disable="isGameStarted && !isGameOver"
+            @click="handleStartOrRestart"
+          />
+          <q-btn
+            color="green-8"
+            text-color="white"
+            label="Reiniciar"
+            dense
+            unelevated
+            class="action-btn q-px-sm"
+            @click="handleRestart"
+          />
+          <q-btn
+            style="margin-left: 5px"
+            color="deep-orange-9"
+            text-color="white"
+            label="Sair"
+            dense
+            unelevated
+            class="action-btn q-px-sm"
+            @click="exitGame"
           />
         </div>
 
@@ -109,42 +141,65 @@
         </div>
       </div>
 
-      <!-- Barra de Ações e Modos -->
-      <div class="controls-bar row items-center justify-center q-gutter-xs full-width">
-        <q-btn
-          dense
-          unelevated
-          size="sm"
-          :color="gameMode === 'pve' ? 'primary' : 'grey-8'"
-          label="vs IA"
-          @click="selectMode('pve')"
+      <div class="row items-center justify-between q-mb-sm control-row full-width">
+        <div class="text-subtitle2 text-grey-4">Modo de Jogo:</div>
+        <q-toggle
+          v-model="isPvPMode"
+          :disable="isGameStarted && !isGameOver"
+          color="purple"
+          checked-icon="people"
+          unchecked-icon="smart_toy"
+          :label="isPvPMode ? 'Humano vs Humano' : 'Jogador vs IA'"
+          left-label
+          @update:model-value="updateGameMode"
         />
-        <q-btn
-          dense
-          unelevated
-          size="sm"
-          :color="gameMode === 'pvp' ? 'primary' : 'grey-8'"
-          label="2 Jogadores"
-          @click="selectMode('pvp')"
+      </div>
+
+      <div
+        style="margin-top: -25px"
+        v-if="!isPvPMode"
+        class="row items-center justify-between q-mb-sm control-row full-width"
+      >
+        <div class="text-subtitle2 text-grey-4">Dificuldade da IA:</div>
+        <q-toggle
+          v-model="isHardMode"
+          :disable="isGameStarted && !isGameOver"
+          color="red"
+          checked-icon="whatshot"
+          unchecked-icon="sentiment_satisfied"
+          :label="isHardMode ? 'Difícil' : 'Fácil'"
+          left-label
+          @update:model-value="updateDifficulty"
         />
+      </div>
+
+      <!-- Caixa extra de controlos do Jogador 2 no modo Humano vs Humano -->
+      <div
+        v-if="isPvPMode"
+        class="row q-mb-sm q-gutter-xs justify-center items-center p2-controls-box full-width"
+      >
+        <span class="text-caption text-grey-4 q-mr-xs">Jogador 2 (A / D):</span>
         <q-btn
-          v-if="gameMode === 'pve'"
           dense
           outline
           size="sm"
-          color="amber-4"
-          :label="difficulty === 'hard' ? 'Difícil' : 'Fácil'"
-          @click="toggleDifficulty"
+          color="rose-4"
+          icon="chevron_left"
+          @pointerdown="touchP2Left = true"
+          @pointerup="touchP2Left = false"
+          @pointerleave="touchP2Left = false"
+          @pointercancel="touchP2Left = false"
         />
-        <q-btn dense outline size="sm" color="grey-4" icon="refresh" @click="handleRestart" />
         <q-btn
           dense
-          flat
-          round
+          outline
           size="sm"
-          :color="isMuted ? 'grey-5' : 'amber-4'"
-          :icon="isMuted ? 'volume_off' : 'volume_up'"
-          @click="handleToggleMute"
+          color="rose-4"
+          icon="chevron_right"
+          @pointerdown="touchP2Right = true"
+          @pointerup="touchP2Right = false"
+          @pointerleave="touchP2Right = false"
+          @pointercancel="touchP2Right = false"
         />
       </div>
     </div>
@@ -152,11 +207,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../game/pingPongConstants';
 import { PingPongEngine, type Competitor } from '../game/PingPongEngine';
 import { soundManager } from '../game/classes/SoundManager';
 import { useInputControls } from '../composables/useInputControls';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const engine = new PingPongEngine();
@@ -177,6 +234,20 @@ const statusMessage = ref(engine.message);
 const gameMode = ref<'pve' | 'pvp'>('pve');
 const difficulty = ref<'easy' | 'hard'>('hard');
 const isMuted = ref(soundManager.isMuted);
+
+const isPvPMode = computed({
+  get: () => gameMode.value === 'pvp',
+  set: (val: boolean) => {
+    gameMode.value = val ? 'pvp' : 'pve';
+  },
+});
+
+const isHardMode = computed({
+  get: () => difficulty.value === 'hard',
+  set: (val: boolean) => {
+    difficulty.value = val ? 'hard' : 'easy';
+  },
+});
 
 let animationFrameId: number | null = null;
 
@@ -207,6 +278,15 @@ const handleRestart = (): void => {
   syncHudState();
 };
 
+const handleExitGame = (): void => {
+  engine.isGameStarted = false;
+  engine.isGameOver = false;
+  engine.restartMatch();
+  engine.isGameStarted = false;
+  engine.message = 'Partida encerrada. Clique em Iniciar Jogo para jogar novamente.';
+  syncHudState();
+};
+
 const selectMode = (mode: 'pve' | 'pvp'): void => {
   gameMode.value = mode;
   engine.setGameMode(mode);
@@ -214,8 +294,18 @@ const selectMode = (mode: 'pve' | 'pvp'): void => {
   syncHudState();
 };
 
+const updateGameMode = (val: boolean): void => {
+  selectMode(val ? 'pvp' : 'pve');
+};
+
 const toggleDifficulty = (): void => {
   difficulty.value = difficulty.value === 'hard' ? 'easy' : 'hard';
+  engine.setDifficulty(difficulty.value);
+  syncHudState();
+};
+
+const updateDifficulty = (val: boolean): void => {
+  difficulty.value = val ? 'hard' : 'easy';
   engine.setDifficulty(difficulty.value);
   syncHudState();
 };
@@ -238,6 +328,13 @@ const gameLoop = (): void => {
 
   syncHudState();
   animationFrameId = requestAnimationFrame(gameLoop);
+};
+
+const exitGame = () => {
+  window.close();
+  setTimeout(() => {
+    router.push('/');
+  }, 100);
 };
 
 onMounted(() => {
@@ -302,10 +399,27 @@ onUnmounted(() => {
   backdrop-filter: blur(2px);
 }
 
+.control-row {
+  padding: 2px 6px;
+}
+
+.p2-controls-box {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px;
+  border-radius: 8px;
+}
+
 .controls-bar {
   background: rgba(30, 41, 59, 0.75);
   border: 1px solid rgba(148, 163, 184, 0.15);
   border-radius: 10px;
   padding: 6px;
+}
+
+.action-btn {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: bold;
 }
 </style>
