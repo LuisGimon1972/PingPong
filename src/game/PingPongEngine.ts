@@ -44,7 +44,6 @@ export class PingPongEngine {
   private lastHitTime = 0;
   private hitCooldownMs = 160;
 
-  // Ponto-alvo dentro da área azul para onde a bola é direcionada
   private targetBounceX = COURT.x + COURT.width / 2;
   private targetBounceY = COURT.y + COURT.height * 0.28;
   private activeTargetSide: Competitor = 'ai';
@@ -131,7 +130,6 @@ export class PingPongEngine {
     const maxX = COURT.x + COURT.width - marginX;
     const tableCenterX = COURT.x + COURT.width / 2;
 
-    // Combina o offset da raquete com um leve espalhamento para cair sempre dentro da mesa azul
     const clampedOffset = Math.max(-1, Math.min(1, paddleHitOffset));
     const randomJitter = (Math.random() - 0.5) * 0.35;
     const combinedFactor = Math.max(-1, Math.min(1, clampedOffset * 0.75 + randomJitter));
@@ -159,7 +157,6 @@ export class PingPongEngine {
     this.ball.vx = (dx / distance) * currentSpeed;
     this.ball.vy = (dy / distance) * currentSpeed;
 
-    // Garante sentido vertical coerente com o lado alvo
     if (targetSide === 'ai' && this.ball.vy >= -2.2) {
       this.ball.vy = -Math.max(2.6, Math.abs(this.ball.vy));
     } else if (targetSide === 'player' && this.ball.vy <= 2.2) {
@@ -279,7 +276,6 @@ export class PingPongEngine {
     const tableTop = COURT.y;
     const tableBottom = COURT.y + COURT.height;
 
-    // 1. PIQUE DENTRO DA ÁREA AZUL (Obrigatório antes da rebatida)
     if (this.isInsideBlueTable() && !this.ball.hasBouncedInCurrentCourt) {
       const reachedUpperBounce =
         this.ball.vy < 0 &&
@@ -300,7 +296,6 @@ export class PingPongEngine {
       }
     }
 
-    // 2. SAÍDA PELAS LINHAS DE FUNDO
     if (this.ball.y - this.ball.radius < tableTop - 32) {
       this.awardPoint('player', 'PONTO DO JOGADOR 1!');
       return;
@@ -311,10 +306,8 @@ export class PingPongEngine {
       return;
     }
 
-    // 3. REBATIDA COM AS RAQUETES (Somente após pique válido na área azul)
     const now = performance.now();
     if (now - this.lastHitTime > this.hitCooldownMs) {
-      // Jogador 1 (parte inferior)
       const hitsPlayerPaddle =
         this.ball.vy > 0 &&
         this.ball.y + this.ball.radius >= this.player.y &&
@@ -343,14 +336,12 @@ export class PingPongEngine {
         this.lastBounceSide = null;
         this.lastHitTime = now;
 
-        // Direciona ativamente a devolução para a metade superior da mesa azul
         this.aimBallTowardTable('ai', hitOffset);
         this.message = 'Devolução direcionada para a mesa azul (Jogador 1)!';
         soundManager.playHit();
         return;
       }
 
-      // Oponente / Jogador 2 (parte superior)
       const hitsAiPaddle =
         this.ball.vy < 0 &&
         this.ball.y - this.ball.radius <= this.ai.y + this.ai.height &&
@@ -378,7 +369,6 @@ export class PingPongEngine {
         this.lastBounceSide = null;
         this.lastHitTime = now;
 
-        // Direciona ativamente a devolução para a metade inferior da mesa azul
         this.aimBallTowardTable('player', hitOffset);
         this.message = 'Devolução direcionada para a mesa azul (Oponente)!';
         soundManager.playHit();
@@ -426,13 +416,11 @@ export class PingPongEngine {
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     Court.render(ctx, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Destaque sutil na borda da área azul
     ctx.save();
     ctx.strokeStyle = 'rgba(125, 211, 252, 0.55)';
     ctx.lineWidth = 2;
     ctx.strokeRect(COURT.x + 1, COURT.y + 1, COURT.width - 2, COURT.height - 2);
 
-    // Indicador discreto do ponto-alvo de pique na mesa azul antes da bola quicar
     if (!this.ball.hasBouncedInCurrentCourt && this.isGameStarted && !this.isGameOver) {
       ctx.strokeStyle =
         this.activeTargetSide === 'player'
@@ -446,7 +434,6 @@ export class PingPongEngine {
     }
     ctx.restore();
 
-    // Rastro sutil da bola
     this.ball.history.forEach((pt, idx) => {
       const alpha = ((idx + 1) / (this.ball.history.length + 1)) * 0.25;
       ctx.fillStyle = `rgba(250, 204, 21, ${alpha})`;
@@ -455,7 +442,6 @@ export class PingPongEngine {
       ctx.fill();
     });
 
-    // Marcas visuais de pique na área azul
     this.bounceMarks.forEach((mark) => {
       ctx.save();
       ctx.fillStyle = `rgba(255, 255, 255, ${mark.alpha * 0.85})`;
@@ -473,7 +459,6 @@ export class PingPongEngine {
 
     const frameCol = Math.floor(this.animFrameCounter / 6) % 6;
 
-    // Raquete Superior (IA / Jogador 2)
     this.atlas.drawPaddle(
       ctx,
       'ai',
@@ -485,7 +470,6 @@ export class PingPongEngine {
       this.ai.height + 16,
     );
 
-    // Raquete Inferior (Jogador 1 / HUM)
     this.atlas.drawPaddle(
       ctx,
       'hum',
@@ -497,7 +481,6 @@ export class PingPongEngine {
       this.player.height + 16,
     );
 
-    // Bola com escala de quique
     ctx.fillStyle = '#facc15';
     ctx.beginPath();
     ctx.arc(this.ball.x, this.ball.y, this.ball.radius * this.bounceScale, 0, Math.PI * 2);

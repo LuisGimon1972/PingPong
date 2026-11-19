@@ -32,13 +32,11 @@ export class Ball {
     const dirX = Math.random() < 0.5 ? -1 : 1;
     const spreadX = (Math.random() * 0.6 + 0.5) * BALL.baseSpeedX;
 
-    // Se o jogador 1 (embaixo) inicia a jogada, a bola vai em direção à rede/campo superior
     if (servingToPlayer) {
       this.vx = dirX * spreadX;
       this.vy = -BALL.baseSpeedY;
       this.lastHitByPlayer = true;
     } else {
-      // Se o oponente (em cima) inicia a jogada, a bola vai em direção à rede/campo inferior
       this.vx = dirX * spreadX;
       this.vy = BALL.baseSpeedY;
       this.lastHitByPlayer = false;
@@ -47,7 +45,6 @@ export class Ball {
     this.hasBouncedInCurrentCourt = false;
     this.history = [];
 
-    // Garante posição válida dentro do eixo central da mesa
     if (Math.abs(this.y - netY) < this.radius) {
       this.y = servingToPlayer ? netY + 40 : netY - 40;
     }
@@ -62,7 +59,6 @@ export class Ball {
     this.x += this.vx;
     this.y += this.vy;
 
-    // Limita velocidade máxima para manter o controle das trajetórias
     const currentSpeed = Math.hypot(this.vx, this.vy);
     if (currentSpeed > BALL.maxSpeed) {
       const ratio = BALL.maxSpeed / currentSpeed;

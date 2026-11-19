@@ -17,7 +17,6 @@ export class Paddle {
   public move(dx: number): void {
     this.x += dx;
 
-    // Mantém a raquete dentro dos limites horizontais do canvas
     const minX = 8;
     const maxX = CANVAS_WIDTH - this.width - 8;
 
