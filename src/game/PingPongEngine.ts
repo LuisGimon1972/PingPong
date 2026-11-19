@@ -26,7 +26,7 @@ export class PingPongEngine {
   public currentServer: Competitor = 'player';
   public message = 'DIRECIONAMENTO ATIVO PARA A ÁREA AZUL! PIQUE ANTES DE BATER';
 
-  private atlas = new PingPongAtlas('/images/AtlasPingPong.png');
+  public atlas = new PingPongAtlas('/images/AtlasPingPong.png');
   private aiFacing: PaddleFacing = 'vertical';
   private playerFacing: PaddleFacing = 'vertical';
   private animFrameCounter = 0;
